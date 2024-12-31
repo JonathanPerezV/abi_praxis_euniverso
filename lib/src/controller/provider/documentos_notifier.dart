@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 class DocumentosNotifier extends ChangeNotifier {
 
-  List<DocumentosSolicitudModel> get documentos => _documentos;
+  List<DocumentosSolicitudModel> get  documentos => _documentos;
 
   final List<DocumentosSolicitudModel> _documentos = [];
 

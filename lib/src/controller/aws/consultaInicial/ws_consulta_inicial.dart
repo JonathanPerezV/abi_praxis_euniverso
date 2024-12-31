@@ -15,7 +15,7 @@ class WsConsultaInicial {
   final wsCont = WSContactos();
   final pfrc = UserPreferences();
 
-  Future<void> obtenerDatosIniciales() async {
+Future<void> obtenerDatosIniciales() async {
     final idPromotor = await pfrc.getIdPromotor();
     final res = await http.post(Uri.parse(_url),
         body: jsonEncode({"id_promotor": idPromotor}));

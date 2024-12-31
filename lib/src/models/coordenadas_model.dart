@@ -6,9 +6,11 @@ class CoordenadasModel {
   String longitud;
   String? observacion;
   int? usuarioCreacion;
+  int tipoUsuario;
 
   CoordenadasModel(
       {required this.idPromotor,
+      required this.tipoUsuario,
       required this.latitud,
       required this.longitud,
       required this.observacion,
@@ -17,6 +19,7 @@ class CoordenadasModel {
   Map<String, dynamic> toJson() => {
         "id_promotor": idPromotor,
         "latitud": latitud,
+        "tipo_usuario": tipoUsuario,
         "longitud": longitud,
         "observacion": observacion,
         "usuario_creacion": usuarioCreacion,

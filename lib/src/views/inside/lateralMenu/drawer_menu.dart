@@ -4,7 +4,7 @@ import 'package:abi_praxis_app/src/controller/provider/loading_provider.dart';
 import 'package:abi_praxis_app/utils/loading.dart';
 import 'package:flutter/material.dart';
 import 'package:abi_praxis_app/src/controller/preferences/user_preferences.dart';
-import 'package:abi_praxis_app/src/views/inside/home/home_page.dart';
+import 'package:abi_praxis_app/src/views/inside/home/vendedor/home_page.dart';
 import 'package:abi_praxis_app/src/views/inside/lateralMenu/mi_perfil/datos_personales.dart';
 import 'package:abi_praxis_app/utils/alerts/and_alert.dart';
 import 'package:abi_praxis_app/utils/alerts/ios_alert.dart';
@@ -12,9 +12,35 @@ import 'package:abi_praxis_app/utils/icons/abi_praxis_icons.dart';
 import 'package:provider/provider.dart';
 import '../../../../utils/deviders/divider.dart';
 
-class DrawerMenu extends StatelessWidget {
+class DrawerMenu extends StatefulWidget {
   bool? inicio;
   DrawerMenu({this.inicio, super.key});
+
+  @override
+  State<DrawerMenu> createState() => _DrawerMenuState();
+}
+
+class _DrawerMenuState extends State<DrawerMenu> {
+  bool enableSync = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    validateTipoUsuario();
+  }
+
+  Future<void> validateTipoUsuario() async {
+    final user = UserPreferences();
+
+    final tipoUsuario = await user.getTipoUsuario();
+
+    if (tipoUsuario == 3) {
+      setState(() => enableSync = false);
+    } else {
+      setState(() => enableSync = true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,8 +76,9 @@ class DrawerMenu extends StatelessWidget {
                       Expanded(
                         child: SingleChildScrollView(
                           child: Column(children: [
-                            if (inicio != null && !inicio!) divider(false),
-                            if (inicio != null && !inicio!)
+                            if (widget.inicio != null && !widget.inicio!)
+                              divider(false),
+                            if (widget.inicio != null && !widget.inicio!)
                               ListTile(
                                 onTap: () {
                                   Navigator.push(
@@ -102,24 +129,25 @@ class DrawerMenu extends StatelessWidget {
                 ),
                 Row(
                   children: [
-                    Expanded(
-                      child: Container(
-                        height: Platform.isIOS ? 60 : 50,
-                        decoration: const BoxDecoration(
-                          /*borderRadius: BorderRadius.only(
+                    if (enableSync)
+                      Expanded(
+                        child: Container(
+                          height: Platform.isIOS ? 60 : 50,
+                          decoration: const BoxDecoration(
+                            /*borderRadius: BorderRadius.only(
                                 topLeft: Radius.circular(100),
                                 bottomLeft: Radius.circular(100)),*/
-                          color: Colors.green,
+                            color: Colors.green,
+                          ),
+                          child: IconButton(
+                              tooltip: "Sincronizar datos",
+                              onPressed: () => Platform.isAndroid
+                                  ? AndroidAlert().alertSync(context)
+                                  : IosAlert().alertSync(context),
+                              icon: const Icon(Icons.cloud_sync_outlined,
+                                  size: 35, color: Colors.white)),
                         ),
-                        child: IconButton(
-                            tooltip: "Sincronizar datos",
-                            onPressed: () => Platform.isAndroid
-                                ? AndroidAlert().alertSync(context)
-                                : IosAlert().alertSync(context),
-                            icon: const Icon(Icons.cloud_sync_outlined,
-                                size: 35, color: Colors.white)),
                       ),
-                    ),
                     Expanded(
                       flex: 4,
                       child: InkWell(
@@ -131,28 +159,28 @@ class DrawerMenu extends StatelessWidget {
                             color: Colors.black,
                             width: double.infinity,
                             child: Align(
-                                                            alignment: Alignment.centerRight,
-                                                            child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text(
-                                'CERRAR SESIÓN',
-                                style: TextStyle(color: Colors.white),
+                              alignment: Alignment.centerRight,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text(
+                                    'CERRAR SESIÓN',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  Container(
+                                    margin: const EdgeInsets.only(
+                                        left: 10, right: 15),
+                                    child: const Icon(
+                                      Icons.logout,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                ],
                               ),
-                              Container(
-                                margin: const EdgeInsets.only(
-                                    left: 10, right: 15),
-                                child: const Icon(
-                                  Icons.logout,
-                                  color: Colors.white,
-                                ),
-                              )
-                            ],
-                                                            ),
-                                                            //),
-                                                            /*),
+                              //),
+                              /*),
                                                             ],*/
-                                                          )),
+                            )),
                       ),
                     ),
                   ],

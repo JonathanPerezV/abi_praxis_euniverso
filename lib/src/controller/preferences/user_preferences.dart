@@ -1,6 +1,18 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UserPreferences {
+  Future<void> saveTipoUsuario(int idTipoUsuario) async {
+    final pfrc = await SharedPreferences.getInstance();
+
+    await pfrc.setInt("tipoUsuario", idTipoUsuario);
+  }
+
+  Future<int> getTipoUsuario() async {
+    final pfrc = await SharedPreferences.getInstance();
+
+    return pfrc.getInt("tipoUsuario") ?? 0;
+  }
+
   Future<void> saveIdPromotor(int idProm) async {
     final pfrc = await SharedPreferences.getInstance();
 

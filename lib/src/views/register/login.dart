@@ -1,8 +1,10 @@
 // ignore_for_file: use_build_context_synchronously
 import 'dart:io';
+import 'package:abi_praxis_app/src/controller/preferences/user_preferences.dart';
+import 'package:abi_praxis_app/src/views/inside/home/repartidor/home_repartidor.dart';
 import 'package:flutter/material.dart';
 import 'package:abi_praxis_app/src/controller/preferences/app_preferences.dart';
-import 'package:abi_praxis_app/src/views/inside/home/home_page.dart';
+import 'package:abi_praxis_app/src/views/inside/home/vendedor/home_page.dart';
 import 'package:abi_praxis_app/utils/alerts/and_alert.dart';
 import 'package:abi_praxis_app/utils/alerts/ios_alert.dart';
 import 'package:abi_praxis_app/utils/buttons.dart';
@@ -33,7 +35,7 @@ class _LoginPageState extends State<LoginPage> {
 
   final focusNode = FocusNode();
   final mailFocusNode = FocusNode();
-
+  
   bool conditions = false;
   bool autorization = false;
 
@@ -286,6 +288,7 @@ class _LoginPageState extends State<LoginPage> {
 
   void validateButton() async {
     final appPreferences = AppPreferences();
+    final userPfrc = UserPreferences();
 
     if (formKey.currentState!.validate()) {
       FocusScope.of(context).unfocus();
@@ -300,8 +303,17 @@ class _LoginPageState extends State<LoginPage> {
         if (data == "ok") {
           await appPreferences.saveLoginPage(true);
 
-          Navigator.push(context,
-              MaterialPageRoute(builder: (builder) => const HomePage()));
+          int tipoUsuario = await userPfrc.getTipoUsuario();
+
+          if (tipoUsuario == 3) {
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (builder) => const HomeRepartidor()));
+          } else {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (builder) => const HomePage()));
+          }
         } else {
           final separate = data.split(",");
 

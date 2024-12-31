@@ -1,5 +1,7 @@
 import 'package:abi_praxis_app/src/controller/provider/form_state.dart';
 import 'package:abi_praxis_app/src/controller/provider/loading_provider.dart';
+import 'package:abi_praxis_app/src/controller/provider/map/map_controller.dart';
+import 'package:abi_praxis_app/src/views/inside/home/repartidor/home_repartidor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -7,7 +9,7 @@ import 'package:abi_praxis_app/src/controller/background_service.dart';
 import 'package:abi_praxis_app/src/controller/preferences/app_preferences.dart';
 import 'package:abi_praxis_app/src/controller/dataBase/operations.dart';
 import 'package:abi_praxis_app/src/controller/preferences/user_preferences.dart';
-import 'package:abi_praxis_app/src/views/inside/home/home_page.dart';
+import 'package:abi_praxis_app/src/views/inside/home/vendedor/home_page.dart';
 import 'package:abi_praxis_app/src/views/register/forgot_password.dart';
 import 'package:abi_praxis_app/src/views/register/initial_pages/permissions_page.dart';
 import 'package:abi_praxis_app/src/views/register/initial_pages/preview_permissions.dart';
@@ -16,7 +18,6 @@ import 'package:abi_praxis_app/src/views/register/login.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
-
 import 'src/controller/background_fetch.dart';
 
 String routePage = "preview";
@@ -30,13 +31,18 @@ void getCurrentPage() async {
   final login = await appPreferences.getLoginPage();
   final academy = await appPreferences.getAcademyPage();
   final profile = await appPreferences.getProfile();
+  final user = await userpfrc.getTipoUsuario();
 
   if (permissions) {
     routePage = "welcome";
     if (welcome) {
       routePage = "login";
       if (login) {
-        routePage = "home";
+        if (user == 2) {
+          routePage = "home";
+        } else {
+          routePage = "repartidor_home";
+        }
       }
     } else {
       routePage = "login";
@@ -94,7 +100,8 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => FormProvider()),
-        ChangeNotifierProvider(create: (_) => LoadingProvider())
+        ChangeNotifierProvider(create: (_) => LoadingProvider()),
+        ChangeNotifierProvider(create: (_) => MapaController())
       ],
       child: MaterialApp(
         color: Colors.white,
@@ -115,6 +122,7 @@ class MyApp extends StatelessWidget {
           "forgot_password": (_) => const ForgotPassword(),
           "preview": (_) => const InformativePage(),
           "home": (_) => const HomePage(),
+          "repartidor_home": (_) => const HomeRepartidor(),
           "login": (_) => const LoginPage(),
         },
         initialRoute: route,

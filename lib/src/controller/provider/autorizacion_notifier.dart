@@ -6,10 +6,7 @@ class AutorizacionNotifier extends ChangeNotifier {
   String toJson() => jsonEncode({"autorizacion": _autorizacion});
 
   final Map<String, dynamic> _autorizacion = {
-    "prospecto": null,
-    "conyuge": null,
-    "garante": null,
-    "conyuge_garante": null
+    "titular": null,
   };
   String? getValueAutorizacion(String key) => _autorizacion[key];
 
@@ -19,9 +16,7 @@ class AutorizacionNotifier extends ChangeNotifier {
   }
 
   void limpiarDatos() {
-    _autorizacion["prospecto"] = null;
-    _autorizacion["conyuge"] = null;
-    _autorizacion["garante"] = null;
-    _autorizacion["conyuge_garante"] = null;
+    _autorizacion["titular"] = null;
+    notifyListeners();
   }
 }

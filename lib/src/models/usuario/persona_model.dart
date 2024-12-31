@@ -19,9 +19,9 @@ class PersonaModel {
   final String? referenciaTrabajo;
   final String? mail;
   final String? empresaNegocio;
-  final String? pais;
-  final String? provincia;
-  final String? ciudad;
+  final int? pais;
+  final int? provincia;
+  final int? ciudad;
   final String? fotoReferenciaCasa;
   final String? fotoReferenciaTrabajo;
   final String? fechaUpdate;

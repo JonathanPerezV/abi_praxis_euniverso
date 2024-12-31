@@ -60,14 +60,17 @@ class _DatosPersonalesState extends State<DatosPersonales> {
 
   List<String> listPaises = ['ECUADOR'];
   String? pais;
+  int? idPais;
 
   List<Map<String, dynamic>> listaProvincias = [];
-  String? provincia;
+  Map<String, dynamic>? provincia;
+  int? idProvincia;
   bool provinciasVisible = false;
   String? hintTextProvincia;
 
-  List<String> listaCiudades = [];
-  String? ciudad;
+  List<Map<String, dynamic>> listaCiudades = [];
+  Map<String, dynamic>? ciudad;
+  int? idCiudad;
   bool ciudadesVisible = false;
   String? hintTextCiudad;
 
@@ -102,23 +105,36 @@ class _DatosPersonalesState extends State<DatosPersonales> {
         txtApellidos.text = usuarioData.apellidos ?? "";
         txtCedula.text = usuarioData.numeroIdentificacion ?? "";
 
-        pais = usuarioData.pais;
-        if (pais != null) {
-          if (pais == "ECUADOR") {
+        if (usuarioData.pais != null) {
+          idPais = 1;
+          if (idPais == 1) {
+            setState(() => pais = "ECUADOR");
             provinciasVisible = true;
-            funcionPais(pais);
+            funcionPais(idPais);
+            txtPais.text = pais!;
 
-            provincia = usuarioData.provincia;
+            setState(() => provincia = listaProvincias
+                .where((e) => e["id"] == usuarioData.provincia!)
+                .first);
             if (provincia != null) {
-              ciudadesVisible = true;
-              funcionProvincia(provincia ?? "");
+              setState(() {
+                idProvincia = provincia!["id"];
+                ciudadesVisible = true;
+                funcionProvincia(provincia!["id"]);
+                txtProvincia.text = provincia!["nombre"];
+              });
             }
 
-            ciudad = usuarioData.ciudad;
+            setState(() {
+              ciudad = obtenerCiudadesEcuadorDe(idProvincia!)
+                  .where((e) => e["id_c"] == usuarioData.ciudad)
+                  .first;
+              txtCiudad.text = ciudad!["nombre"];
+            });
           } else {
-            txtPais.text = usuarioData.pais ?? "";
-            txtProvincia.text = usuarioData.provincia ?? "";
-            txtCiudad.text = usuarioData.ciudad ?? "";
+            txtPais.text = "";
+            txtProvincia.text = "";
+            txtCiudad.text = "";
           }
         }
 
@@ -354,7 +370,7 @@ class _DatosPersonalesState extends State<DatosPersonales> {
                                     }
                                     provinciasVisible = true;
                                   });
-                                  funcionPais(pais);
+                                  funcionPais(1);
                                 }),
                           ),
                         )
@@ -394,7 +410,8 @@ class _DatosPersonalesState extends State<DatosPersonales> {
                                 absorbing: hintTextProvincia != 'cargando...'
                                     ? false
                                     : true,
-                                child: DropdownButtonFormField<String>(
+                                child: DropdownButtonFormField<
+                                        Map<String, dynamic>>(
                                     value: provincia,
                                     validator: (value) {
                                       if (pais != null) {
@@ -412,21 +429,24 @@ class _DatosPersonalesState extends State<DatosPersonales> {
                                     hint:
                                         Text(hintTextProvincia ?? 'Seleccione'),
                                     items: listaProvincias.map((e) {
-                                      return DropdownMenuItem<String>(
-                                        value: e['nombre'].toUpperCase(),
+                                      return DropdownMenuItem<
+                                          Map<String, dynamic>>(
+                                        value: e,
                                         child: Text(
                                             "${e['nombre'].toUpperCase()}"),
                                       );
                                     }).toList(),
                                     onChanged: (value) async {
                                       setState(() {
-                                        provincia = value;
-                                        txtProvincia.text = provincia!;
+                                        provincia = value!["nombre"];
+                                        txtProvincia.text =
+                                            provincia!["nombre"];
+                                        idProvincia = provincia!["id"];
                                         ciudad = null;
                                       });
                                       ciudadesVisible = true;
 
-                                      funcionProvincia(provincia!);
+                                      funcionProvincia(idProvincia);
                                     }),
                               ),
                             ),
@@ -468,7 +488,8 @@ class _DatosPersonalesState extends State<DatosPersonales> {
                                 absorbing: hintTextCiudad != 'cargando...'
                                     ? false
                                     : true,
-                                child: DropdownButtonFormField<String>(
+                                child: DropdownButtonFormField<
+                                        Map<String, dynamic>>(
                                     validator: (value) {
                                       if (provincia != null) {
                                         if (value == null || value.isEmpty) {
@@ -484,15 +505,17 @@ class _DatosPersonalesState extends State<DatosPersonales> {
                                     enableFeedback: false,
                                     value: ciudad,
                                     items: listaCiudades.map((e) {
-                                      return DropdownMenuItem<String>(
-                                        value: e.toUpperCase(),
-                                        child: Text(e.toUpperCase()),
+                                      return DropdownMenuItem<
+                                          Map<String, dynamic>>(
+                                        value: e,
+                                        child: Text(e["nombre"].toUpperCase()),
                                       );
                                     }).toList(),
                                     onChanged: (value) async {
                                       setState(() {
-                                        ciudad = value;
-                                        txtCiudad.text = ciudad!;
+                                        ciudad = value!["nombre"];
+                                        idCiudad = value["id_c"];
+                                        txtCiudad.text = ciudad!["nombre"];
                                       });
                                     }),
                               ),
@@ -699,12 +722,12 @@ class _DatosPersonalesState extends State<DatosPersonales> {
         apellidos: txtApellidos.text,
         numeroIdentificacion: txtCedula.text,
         celular1: txtCelular.text,
-        ciudad: ciudad!,
+        ciudad: idCiudad,
         mail: txtCorreo.text,
         fechaNacimiento: _formatDate.toString(),
         nombres: txtNombres.text,
-        pais: pais,
-        provincia: provincia);
+        pais: idPais,
+        provincia: idProvincia);
     final user = await wsPer.actualizarPersona(model, isPromotor: true);
 
     if (user == "si") {
@@ -722,9 +745,9 @@ class _DatosPersonalesState extends State<DatosPersonales> {
     });
   }
 
-  void funcionPais(String? pais) async {
+  void funcionPais(int? pais) async {
     listaProvincias.clear();
-    if (pais == 'ECUADOR') {
+    if (pais == 1) {
       final provincias = listaProvinciasEcuador['provincias'];
       for (var item in provincias) {
         setState(() {
@@ -737,9 +760,9 @@ class _DatosPersonalesState extends State<DatosPersonales> {
     }
   }
 
-  void funcionProvincia(String provincia) async {
-    if (pais == 'ECUADOR') {
-      final res = obtenerCiudadesEcuadorDe(provincia);
+  void funcionProvincia(int? idProvincia) async {
+    if (idPais == 1) {
+      final res = obtenerCiudadesEcuadorDe(idProvincia);
       listaCiudades = res;
     }
   }

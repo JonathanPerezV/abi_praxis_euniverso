@@ -79,6 +79,7 @@ Future<void> logicToServer(ServiceInstance service,
     if (enable != null && enable) {
       final id = await userpfrc.getIdPromotor();
       final idUser = await userpfrc.getIdUser();
+      final tipoUsuario = await userpfrc.getTipoUsuario();
       Position position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high);
 
@@ -93,7 +94,8 @@ Future<void> logicToServer(ServiceInstance service,
               idPromotor: id,
               usuarioCreacion: idUser,
               latitud: position.latitude.toString(),
-              longitud: position.longitude.toString()));
+              longitud: position.longitude.toString(),
+              tipoUsuario: tipoUsuario));
 
           print("COORDENADAS: $res");
 
@@ -103,7 +105,7 @@ Future<void> logicToServer(ServiceInstance service,
                   "Ubicación actualizada: ${position.latitude},${position.longitude}");
         }
       } else {
-        await iosLogic(id, idUser, position);
+        await iosLogic(id, idUser, position, tipoUsuario);
       }
       debugPrint(
           "envío de latitud y longitud: ${position.latitude},${position.longitude}");
@@ -118,14 +120,16 @@ Future<void> logicToServer(ServiceInstance service,
   }
 }
 
-Future<void> iosLogic(int id, int idUser, Position position) async {
+Future<void> iosLogic(
+    int id, int idUser, Position position, int tipoUsuario) async {
   final wsCoor = WsCoordenadas();
   final res = await wsCoor.insertarCoordenada(CoordenadasModel(
       observacion: "",
       idPromotor: id,
       usuarioCreacion: idUser,
       latitud: position.latitude.toString(),
-      longitud: position.longitude.toString()));
+      longitud: position.longitude.toString(),
+      tipoUsuario: tipoUsuario));
 
   print("COORDENADAS: $res");
 }

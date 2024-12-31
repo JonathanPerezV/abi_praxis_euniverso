@@ -1,6 +1,4 @@
-import 'dart:convert';
 import 'dart:io';
-
 import 'package:abi_praxis_app/src/controller/aws/operaciones/ws_autorizacion.dart';
 import 'package:abi_praxis_app/src/controller/aws/operaciones/ws_contactos.dart';
 import 'package:abi_praxis_app/src/controller/aws/operaciones/ws_prospectos.dart';
@@ -108,97 +106,91 @@ class Sync {
     //actualizacion e inserción de persona
     debugPrint("**********************************************");
     debugPrint("**********************************************");
-    debugPrint("INSERTAR PERSONA EN LA NUBE Y ACTUALIZAR ID RDS LOCAL");
+    debugPrint("BUSCAMOS SOLICITUD POR PERSONA");
     debugPrint("**********************************************");
     debugPrint("**********************************************");
     debugPrint("\n");
-    final idRDSPersona =
-        await wsPer.insertarPersona(persona, idLocal: persona.idPersona!);
 
-    //todo obtenemos clientes y prospectos por persona, si es cliente se prioriza y se actualiza el estado del prospecto a inactivo
-    final cliente = await op.obtenerCliente(persona.idPersona!);
-    final prospecto = await op.obtenerProspecto(persona.idPersona!);
+    int idLocalPersona = persona.idPersona!;
 
-    if (cliente != null) {
-      //todo actualizacion temporar de id persona con el de la nube para que haga match
-      cliente.idPersona = idRDSPersona;
+    //todo obtenemos la solicitud para en base a esto poder sincronizar datos
+    final solicitud =
+        await op.obtenerSolicitudPersonaXestadoFinalizada(idLocalPersona);
 
-      final idCliente = await wsCli.insertarCliente(cliente,
-          idLocal: cliente.idCliente, idPersona: persona.idPersona);
+    if (solicitud.isNotEmpty) {
+      //todo insertamos a la persona de esta solicitud en la base de datos
+      final idRDSPersona =
+          await wsPer.insertarPersona(persona, idLocal: idLocalPersona);
 
-      debugPrint("CLIENTE INSERTADO EN LA NUBE - ID RDS: $idCliente");
-    } else {
+      //todo obtenemos e insertamos a esta persona como prospecto
+      final prospecto = await op.obtenerProspecto(idLocalPersona);
+
       if (prospecto != null) {
-        //todo actualizacion temporar de id persona con el de la nube para que haga match
         prospecto.idPersona = idRDSPersona;
 
-        final idProspecto = await wsPros.insertarProspecto(prospecto,
-            idLocal: prospecto.idProspecto);
+        final idProspecto = await wsPros.insertarProspecto(prospecto);
 
         debugPrint("PROSPECTO INSERTADO EN LA NUBE - ID RDS: $idProspecto");
-      } else {
-        debugPrint(
-            "LA PERSONA ${persona.nombres} ${persona.apellidos} NO ES CLIENTE NI PROSPECTO");
-      }
-    }
-    //todo BUSCAR AGENDAS NUEVAS E INSERTAR
-    final infoAgenda =
-        await op.obtenerAgendaYcorreosXpersona(persona.idPersona!);
 
-    if (infoAgenda.isNotEmpty) {
-      List<CorreoModel> listCorreos = [];
-      var listaCalendario = infoAgenda;
-      List<DocsModel> listDocumentos = [];
+        //todo obtenemos e insertamos la agenda de esta persona
+        final infoAgenda =
+            await op.obtenerAgendaYcorreosXpersona(idLocalPersona);
 
-      //todo VALIDAR SI HAY EVENTOS E INGRESAROS, IGUAL LOS CORREOS
-      if (listaCalendario.isNotEmpty) {
-        debugPrint("\n");
-        debugPrint("**********************************************");
-        debugPrint("HAY EVENTOS PARA ESTA PERSONA");
-        debugPrint("**********************************************");
+        if (infoAgenda.isNotEmpty) {
+          List<CorreoModel> listCorreos = [];
+          var listaCalendario = infoAgenda;
+          List<DocsModel> listDocumentos = [];
 
-        for (var ev in listaCalendario) {
-          if (ev.correos != null && ev.correos!.isNotEmpty) {
-            var correos = ev.correos;
+          //todo VALIDAR SI HAY EVENTOS E INGRESAROS, IGUAL LOS CORREOS
+          if (listaCalendario.isNotEmpty) {
+            debugPrint("\n");
+            debugPrint("**********************************************");
+            debugPrint("HAY EVENTOS PARA ESTA PERSONA");
+            debugPrint("**********************************************");
 
-            for (var correo in correos!) {
-              correo.idAgenda = null;
-              listCorreos.add(correo);
+            for (var ev in listaCalendario) {
+              if (ev.correos != null && ev.correos!.isNotEmpty) {
+                var correos = ev.correos;
+
+                for (var correo in correos!) {
+                  correo.idAgenda = null;
+                  listCorreos.add(correo);
+                }
+              }
+
+              if (ev.documentos != null && ev.documentos!.isNotEmpty) {
+                var docs = ev.documentos!;
+                for (var doc in docs) {
+                  listDocumentos.add(doc);
+                }
+              }
+
+              //todo insertar agenda y correos, devuelve id de la agenda
+              final idAgendaRDS = await wsAg.insertarAgenda(
+                  ev, listCorreos, ev.idAgenda!,
+                  idPersonaRDS: idRDSPersona);
+
+              //todo INSERTAR DOCUMENTOS Y ACTUALIZAR ID
+              if (listDocumentos.isNotEmpty) {
+                await wsAg.insertarDocumentosAgenda(
+                    listDocumentos, idAgendaRDS);
+              }
             }
           }
-
-          if (ev.documentos != null && ev.documentos!.isNotEmpty) {
-            var docs = ev.documentos!;
-            for (var doc in docs) {
-              listDocumentos.add(doc);
-            }
-          }
-
-          //todo insertar agenda y correos, devuelve id de la agenda
-          final idAgendaRDS = await wsAg.insertarAgenda(
-              ev, listCorreos, ev.idAgenda!,
-              idPersonaRDS: idRDSPersona);
-
-          //todo INSERTAR DOCUMENTOS Y ACTUALIZAR ID
-          if (listDocumentos.isNotEmpty) {
-            await wsAg.insertarDocumentosAgenda(listDocumentos, idAgendaRDS);
-          }
+        } else {
+          debugPrint("**********************************************");
+          debugPrint(
+              "NO HAY REUNIONES AGENDADAS PARA: ${persona.nombres} ${persona.apellidos} CON ID: ${persona.idPersona}");
+          debugPrint("**********************************************");
         }
+
+        //todo insertamos la solicitud
+        await buscarEinsertarSolicitud(
+            idLocalPersona: idLocalPersona, idPersonaRDS: idRDSPersona);
       }
     } else {
-      debugPrint("**********************************************");
-      debugPrint(
-          "NO HAY REUNIONES AGENDADAS PARA: ${persona.nombres} ${persona.apellidos} CON ID: ${persona.idPersona}");
-      debugPrint("**********************************************");
+      debugPrint("Esta persona no tiene una solicitud en estado finalizada.");
     }
-
-    //todo TRATAMOS DE INSERTAR AUTORIZACIÓN DE CONSULTA
-    int? idRDSAutorizacion =
-        await buscarEinsertarAutorizacion(persona, idRDSPersona: idRDSPersona);
-
-    //todo BUSCAR SOLICITUDES DE CRÉDITO FINALIZADAS E INGRESARLAS
-    await buscarEinsertarSolicitud(persona,
-        idPersonaRDS: idRDSPersona, idRDSAutorizacion: idRDSAutorizacion);
   }
 
   Future<void> funcionesParaActualizarEInsertarDatos(
@@ -372,13 +364,11 @@ class Sync {
       }
     }
 
-    //todo buscamos autorizaciones en la base de datos local - estado 2
-    int? idRDSAutorizacion =
-        await buscarEinsertarAutorizacion(persona, idRDSPersona: idRDSpersona);
-
     //todo BUSCAR SOLICITUDES DE CRÉDITO FINALIZADAS E INGRESARLAS
-    await buscarEinsertarSolicitud(persona,
-        idPersonaRDS: idRDSpersona, idRDSAutorizacion: idRDSAutorizacion);
+    await buscarEinsertarSolicitud(
+      idLocalPersona: idPersonaLocal,
+      idPersonaRDS: idRDSpersona,
+    );
   }
 
   //todo obtener las personas para sincronizar
@@ -549,65 +539,17 @@ class Sync {
     }
   }
 
-  Future<void> buscarEinsertarSolicitud(PersonaModel persona,
-      {required int idPersonaRDS, required int? idRDSAutorizacion}) async {
+  Future<void> buscarEinsertarSolicitud(
+      {required int idLocalPersona, required int idPersonaRDS}) async {
     final solicitud =
-        await op.obtenerSolicitudPersonaXestadoFinalizada(persona.idPersona!);
+        await op.obtenerSolicitudPersonaXestadoFinalizada(idLocalPersona);
 
-    //if (autorizacion.isNotEmpty) {}
-
-    if (solicitud.isNotEmpty && idRDSAutorizacion != null) {
+    if (solicitud.isNotEmpty) {
       debugPrint("**********************************************");
-      debugPrint("INGRESAR SOLICITUD DE CRÉDITO");
+      debugPrint("INGRESAR SOLICITUD DE SUSCRIPCIÓN");
       debugPrint("**********************************************");
-      Map<String, dynamic> decodeRef = jsonDecode(solicitud[0].refPersonales);
 
-      int idPerson1RDS = 0;
-      int idPerson2RDS = 0;
-
-      //DECODIFICAMOS Y OBTENEMOS EL ID PERSONA DE LAS REFERENCIAS
-      final idPersonaRef1 =
-          int.parse(decodeRef["referencias"]["referencia_1"]["id_persona"]);
-      final idPersonaRef2 =
-          int.parse(decodeRef["referencias"]["referencia_2"]["id_persona"]);
-
-      //obtenemos la data de las personas para insertarlas en la nube
-      final person1 = await op.obtenerPersona(idPersonaRef1);
-      final person2 = await op.obtenerPersona(idPersonaRef2);
-
-      //validamos que no sean nulas las personas para poder insertarlas y actualizarles el idRDS
-      if (person1 != null) {
-        debugPrint("INSERTAR REFERENCIA 1");
-
-        idPerson1RDS = await wsPros.insertarPersonaProspecto(person1,
-            idPersonaLocal: person1.idPersona!);
-
-        /*  debugPrint(
-            "referencia 1: ${idPerson1RDS != 0 ? "INSERTADA" : "NO INSERTADA"}"); */
-      }
-
-      if (person2 != null) {
-        debugPrint("INSERTAR REFERENCIA 2");
-
-        idPerson2RDS = await wsPros.insertarPersonaProspecto(person2,
-            idPersonaLocal: person2.idPersona!);
-
-        /* debugPrint(
-            "referencia 2: ${idPerson2RDS != 0 ? "INSERTADA" : "NO INSERTADA"}"); */
-      }
-
-      //actualizamos el idPersona de la referencia en la solicitud y la enviamos
-      decodeRef["referencias"]["referencia_1"]["id_persona"] = idPerson1RDS;
-      decodeRef["referencias"]["referencia_2"]["id_persona"] = idPerson2RDS;
-
-      var encodeRef = jsonEncode(decodeRef);
-
-      //asignamos las nuevas referencias actualizadas a la solicitud
-      solicitud[0].refPersonales = encodeRef;
       solicitud[0].idPersona = idPersonaRDS;
-      solicitud[0].idAutorizacion = idRDSAutorizacion;
-
-      debugPrint("REFERENCIAS PERSONALES = $encodeRef");
 
       //insertamos la solicitud
       await wsSol.insertarSolicitud(solicitud[0],

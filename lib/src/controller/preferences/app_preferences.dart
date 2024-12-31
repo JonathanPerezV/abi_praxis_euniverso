@@ -55,4 +55,15 @@ class AppPreferences {
     final pfrc = await SharedPreferences.getInstance();
     return pfrc.getBool("academy") ?? false;
   }
+
+  //todo GUARDAR REGISTRO DE TUTORIAL DE MAPA
+  Future<void> saveTutorialMap(bool tutorial) async {
+    final pfrc = await SharedPreferences.getInstance();
+    await pfrc.setBool("tutorialMap", tutorial);
+  }
+
+  Future<bool> getTutorialMap() async {
+    final pfrc = await SharedPreferences.getInstance();
+    return pfrc.getBool("tutorialMap") ?? false;
+  }
 }

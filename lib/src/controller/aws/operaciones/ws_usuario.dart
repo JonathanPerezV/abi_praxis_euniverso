@@ -40,8 +40,12 @@ class WSUsuario {
         await pfrc.saveIdUsuario(decode["id_usuario"]);
         await pfrc.saveIdPersonaPromotor(decode["id_persona"]);
         await pfrc.saveUserIdentification(decode["login"]);
+        await pfrc.saveTipoUsuario(decode["id_tipo_usuario"]);
         //todo obtenemos los datos iniciales del promotor
-        await init.obtenerDatosIniciales();
+        if (decode["id_tipo_usuario"] == 2) {
+          await init.obtenerDatosIniciales();
+        }
+
         if (decode["nombres"].contains(" ")) {
           nombre = decode["nombres"].toString().split(" ")[0];
         } else {

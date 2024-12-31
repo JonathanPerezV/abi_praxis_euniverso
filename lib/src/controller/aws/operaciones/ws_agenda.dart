@@ -168,4 +168,35 @@ class WSAgenda {
 
     return listaAgendas;
   }
+
+  Future<List<CalendarModel>> obtenerAgendas() async {
+    final idAsignado = await pfrc.getIdPromotor();
+    final idTipoUsuario = await pfrc.getTipoUsuario();
+
+    List<CalendarModel> agendasList = [];
+
+    final agendas = await http.post(Uri.parse(_url),
+        body: jsonEncode({
+          "operacion": "general",
+          "info": {"id_promotor": idAsignado, "tipo_usuario": idTipoUsuario}
+        }));
+
+    if (agendas.statusCode > 199 && agendas.statusCode < 300) {
+      final decodeData = jsonDecode(agendas.body);
+
+      var listAgendas = decodeData["result"];
+
+      if (listAgendas.isNotEmpty) {
+        for (var agenda in listAgendas) {
+          agendasList.add(CalendarModel.fromJson(agenda["agenda"]));
+        }
+
+        return agendasList;
+      } else {
+        return [];
+      }
+    } else {
+      return [];
+    }
+  }
 }

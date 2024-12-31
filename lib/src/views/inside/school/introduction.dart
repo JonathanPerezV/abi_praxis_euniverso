@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:abi_praxis_app/src/views/inside/home/home_page.dart';
+import 'package:abi_praxis_app/src/views/inside/home/vendedor/home_page.dart';
 import 'package:abi_praxis_app/src/views/inside/school/what_sell/view_category.dart';
 import 'package:abi_praxis_app/utils/deviders/divider.dart';
 import 'package:abi_praxis_app/utils/header.dart';

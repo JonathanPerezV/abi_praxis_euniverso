@@ -1,352 +1,538 @@
 import 'dart:convert';
-import 'dart:typed_data';
-import 'dart:ui';
 
 import 'package:abi_praxis_app/src/models/solicitud/soliciutd_credito_model.dart';
 import 'package:flutter/services.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 Future<String> generatePdf(SolicitudCreditoModel solicitud) async {
-  var titulo = "";
-
-  // Decodificar los datos
-  Map<String, dynamic> datosPersonales = jsonDecode(solicitud.datosPersonales);
-  Map<String, dynamic> datosConyuge = jsonDecode(solicitud.datosConyuge);
-  Map<String, dynamic> datosGarante = jsonDecode(solicitud.datosGarante);
-  Map<String, dynamic> referencias = jsonDecode(solicitud.refPersonales);
-  Map<String, dynamic> refEconomicas = jsonDecode(solicitud.refEconomicas);
-  Map<String, dynamic> solicitudProducto = jsonDecode(solicitud.solicitudProd);
-
   // Crear el documento PDF
   final PdfDocument document = PdfDocument();
-  PdfPage page = document.pages.add();
-  double currentYPosition = 0;
+
+  // Crear página
+  final PdfPage page = document.pages.add();
 
   // Cargar la imagen desde los activos
-  ByteData imageData = await rootBundle.load('assets/amibank.png');
+  ByteData imageData = await rootBundle.load('assets/eu.png');
   Uint8List imageBytes = imageData.buffer.asUint8List();
 
   // Crear una imagen PDF
   PdfBitmap image = PdfBitmap(imageBytes);
-
-  // Obtener la primera página del documento
-
-  // Dibujar la imagen en la página
   page.graphics.drawImage(
     image,
-    const Rect.fromLTWH(125, 0, 275,
-        75), // Cambia las coordenadas y dimensiones según sea necesario
+    const Rect.fromLTWH(0, 30, 180, 25),
   );
 
-  currentYPosition += 60;
+  var map = jsonDecode(solicitud.datosPersonales);
+  var titularMap = map["datos"];
 
-  // Dibujar texto debajo de la imagen
-  String text = "SOLICITUD DE CRÉDITO";
-  PdfFont font =
-      PdfStandardFont(PdfFontFamily.helvetica, 25, style: PdfFontStyle.bold);
+  drawDatosTitularWithBorders(page, titularMap, 0, 60);
 
-  page.graphics.drawString(
-    text,
-    font,
-    bounds: Rect.fromLTWH(125, currentYPosition + 25, 350,
-        100), // Dibujar en la posición Y calculada
-  );
+  var mapB = jsonDecode(solicitud.datosBeneficiario);
+  var beneficiarioMap = mapB["beneficiario"];
 
-  currentYPosition += 40;
+  drawDatosBeneficiarioWithBorders(page, beneficiarioMap, 0, 195);
 
-  // Crear fuentes
-  final PdfFont titleFont =
-      PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold);
-  final PdfFont contentFont = PdfStandardFont(PdfFontFamily.helvetica, 8);
+  var mapS = jsonDecode(solicitud.datosSuscripcion);
+  var sucricpcionMap = mapS["plan_suscripciones"];
 
-  // Definir el tamaño de las celdas y el espaciado
+  drawDatosPlan(page, sucricpcionMap, 0, 430);
 
-  final double maxPageHeight =
-      page.getClientSize().height - 50; // 50 es el margen inferior
+  /*
+  // Dibujar la sección "Plan de Suscripción"
+  page.graphics.drawString("Plan de Suscripción", font,
+      bounds: Rect.fromLTWH(startX, startY, 500, 20));
+  startY += 30;
 
-  int distancia = 25;
+  const planMap = {
+    "plan": null,
+    "pago": null,
+    "informacion_adicional": null,
+  };
 
-  // Función para agregar contenido a la página
-  void addGroupedRow(List<String> titles, Map<String, dynamic> section) {
-    PdfGrid grid = PdfGrid();
-    grid.columns.add(count: 2); // Definir cuántas columnas por sección
-    grid.headers.add(1);
-
-    List<List<String>> pairedData = [];
-    List<String> tempRow = [];
-    section.forEach((key, value) {
-      tempRow.add("$key: ${value ?? "---"}");
-      if (tempRow.length == 2) {
-        pairedData.add(tempRow);
-        tempRow = [];
-      }
-    });
-
-    if (tempRow.isNotEmpty) {
-      pairedData.add(tempRow); // Añadir fila con un único dato si sobra
-    }
-
-    PdfGridRow row;
-    PdfGridRow header;
-
-    for (var rowData in pairedData) {
-      PdfGridRow row = grid.rows.add();
-      header = grid.headers[0];
-      header.cells[0].value = titles[0];
-      header.style = PdfGridCellStyle(font: titleFont);
-      titulo = titles[0];
-      row.cells[0].value = rowData[0];
-      row.cells[1].value =
-          rowData.length > 1 ? rowData[1] : ""; // Celda vacía si no hay dato
-    }
-
-    // Dibujar las celdas
-    // for (var s = 0; s < section.length; s++) {
-    for (var entry in section.entries) {
-      row = grid.rows.add();
-      section.forEach((key, value) {
-        row.cells[0].value = "${entry.key}: \n${entry.value ?? "---"}";
-      });
-    }
-
-    grid.style = PdfGridStyle(
-      font: contentFont,
-      cellPadding: PdfPaddings(left: 1, right: 1, top: 1, bottom: 1),
-    );
-
-    // Dibujar la tabla en la página actual
-    final result = grid.draw(
-        page: page,
-        bounds: Rect.fromLTWH(
-            0, currentYPosition += distancia, page.getClientSize().width, 0));
-
-    // Si la tabla se dibuja correctamente, actualizamos la posición
-    if (result != null) {
-      // Sumar el valor de bounds.bottom para actualizar la posición Y
-      currentYPosition += result.bounds.bottom - 75;
-
-      // Si la posición Y supera el límite de la página, crear una nueva página
-
-      if (currentYPosition > maxPageHeight ||
-          (titulo.contains("Actividad Económica Principal") ||
-              titulo.contains("Actividad Económica Secundaria") ||
-              titulo.contains("Situación económica"))) {
-        // Crear nueva página
-        page = document.pages.add(); // Crear nueva página
-        currentYPosition = 20; // Reiniciar la posición Y para la nueva página
-
-        // **NO volvemos a dibujar la tabla aquí**, solo actualizamos la posición de Y para continuar
-        // Después de la creación de la nueva página, la tabla no se vuelve a dibujar, solo se continúa con el siguiente bloque de contenido.
-      } else {
-        // Si no se supera el límite de la página, solo ajustamos la posición Y
-        currentYPosition += 20; // Ajuste de espacio adicional entre cuadros
-      }
-    }
-    //}
+  column = 0;
+  for (var entry in planMap.entries) {
+    drawBox(page.graphics, entry.key, entry.value, startX + column * boxWidth,
+        startY, boxWidth, boxHeight);
+    column++;
   }
-
-  // Agregar los datos agrupados según tu especificación
-  addGroupedRow(["Datos Personales"], datosPersonales['datos']);
-  addGroupedRow(["Nacimiento"], datosPersonales["nacimiento"]);
-  addGroupedRow(["Identificación"], datosPersonales["identificacion"]);
-  addGroupedRow(["Residencia"], datosPersonales["residencia"]);
-  addGroupedRow(["Educación"], datosPersonales["educacion"]);
-  addGroupedRow(["Actividad Económica Principal"],
-      datosPersonales["actividad_principal"]);
-  addGroupedRow(["Actividad Económica Secundaria"],
-      datosPersonales["actividad_secundaria"]);
-  addGroupedRow(["Situación económica"], datosPersonales["economia"]);
-  addGroupedRow(["Estado civil"], datosPersonales["estado_civil"]);
-  // Puedes seguir agregando más secciones
-  //  *DATOS DEL CONYUGE
-  addGroupedRow(["Datos personales cónyuge"], datosConyuge["datos"]);
-  addGroupedRow(["Nacimiento Cónyuge"], datosConyuge["nacimiento"]);
-  addGroupedRow(["Identificación Cónyuge"], datosConyuge["identificacion"]);
-  addGroupedRow(["Educación Cónyuge"], datosConyuge["educacion"]);
-  addGroupedRow(["Actividad Económica Principal Cónyuge"],
-      datosConyuge['actividad_principal']);
-  addGroupedRow(["Estado civil Cónyuge"], datosConyuge["estado_civil"]);
-  // *DATOS DEL GARANTE
-  addGroupedRow(["Datos Personales Garante"], datosGarante['datos']);
-  addGroupedRow(["Nacimiento  Garante"], datosGarante["nacimiento"]);
-  addGroupedRow(["Identificación  Garante"], datosGarante["identificacion"]);
-  addGroupedRow(["Residencia  Garante"], datosGarante["residencia"]);
-  addGroupedRow(["Educación  Garante"], datosGarante["educacion"]);
-  addGroupedRow(["Actividad Económica Principal Garante"],
-      datosGarante["actividad_principal"]);
-  addGroupedRow(["Actividad Económica Secundaria Garante"],
-      datosGarante["actividad_secundaria"]);
-  addGroupedRow(["Situación económica Garante"], datosGarante["economia"]);
-  addGroupedRow(["Estado civil  Garante"], datosGarante["estado_civil"]);
-  //*REFERENCIAS PERSONALES
-  addGroupedRow(
-      ["Referencia Personal 1"], referencias["referencias"]['referencia_1']);
-  addGroupedRow(
-      ["Referencia Personal 2"], referencias["referencias"]['referencia_2']);
-  //* REFERENCIAS ECONOMICAS
-  addGroupedRow(["Referencia Bancaria"], refEconomicas['datos_bancarios']);
-  addGroupedRow(["Referencia Proveedor"], refEconomicas['proveedor']);
-  //*SOLICITUD DE PRODUCTO
-
-  addGroupedRow(["Solicitud de Producto"], solicitudProducto['solicitud']);
-
-  // Guardar PDF
+ */
+  // Guardar y mostrar el PDF
   List<int> bytes = document.saveSync();
   document.dispose();
 
-  // Codificar a base64
+  // Guardar como archivo temporal y visualizar
   return base64Encode(bytes);
 }
 
+void drawDatosTitularWithBorders(PdfPage page, Map<String, dynamic> titularMap,
+    double startX, double startY) {
+  final PdfGraphics graphics = page.graphics;
 
- /* CÓDIGO FUNCIONAL
-import 'dart:convert';
-import 'dart:ui';
+  // Dimensiones de la tabla
+  double cellWidth = 170; // Ancho de cada celda
+  double titleHeight = 20; // Altura para los títulos
+  double valueHeight = 30; // Altura para los valores
+  double tableWidth = 3 * cellWidth; // Ancho total de la tabla
 
-import 'package:abi_praxis_app/src/models/solicitud/soliciutd_credito_model.dart';
-import 'package:syncfusion_flutter_pdf/pdf.dart';
+  // Dibujar cabecera de la tabla
+  final PdfBrush headerBrush = PdfBrushes.lightGray;
+  final PdfPen borderPen = PdfPens.gray;
 
-Future<String> generatePdf(SolicitudCreditoModel solicitud) async {
-  var titulo = "";
+  graphics.drawRectangle(
+    bounds: Rect.fromLTWH(startX, startY, tableWidth, titleHeight),
+    brush: headerBrush,
+    pen: borderPen,
+  );
+  graphics.drawString(
+    "Datos del titular",
+    PdfStandardFont(PdfFontFamily.helvetica, 12, style: PdfFontStyle.bold),
+    bounds: Rect.fromLTWH(startX, startY, tableWidth, titleHeight),
+    format: PdfStringFormat(
+        alignment: PdfTextAlignment.center,
+        lineAlignment: PdfVerticalAlignment.middle),
+  );
 
-  // Decodificar los datos
-  Map<String, dynamic> datosPersonales = jsonDecode(solicitud.datosPersonales);
-  Map<String, dynamic> datosConyuge = jsonDecode(solicitud.datosConyuge);
-  Map<String, dynamic> datosGarante = jsonDecode(solicitud.datosGarante);
-  Map<String, dynamic> referencias = jsonDecode(solicitud.refPersonales);
-  Map<String, dynamic> refEconomicas = jsonDecode(solicitud.refEconomicas);
-  Map<String, dynamic> solicitudProducto = jsonDecode(solicitud.solicitudProd);
+  // Ajustar posición para las filas
+  startY += titleHeight;
 
-  // Crear el documento PDF
-  final PdfDocument document = PdfDocument();
-  PdfPage page = document.pages.add();
-  double currentYPosition = 0;
+  // Dibujar contenido de la tabla
+  int column = 0;
+  int row = 0;
 
-  // Crear fuentes
-  final PdfFont titleFont =
-      PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold);
-  final PdfFont contentFont = PdfStandardFont(PdfFontFamily.helvetica, 8);
+  const titularNames = {
+    "nombres": "Nombres",
+    "apellidos": "Apellidos",
+    "celular1": "Celular 1",
+    "celular2": "Celular 2",
+    "telefono": "Teléfono",
+    "correo": "Correo",
+  };
 
-  // Definir el tamaño de las celdas y el espaciado
+  for (var entry in titularMap.entries) {
+    String displayName = titularNames[entry.key] ?? entry.key;
+    double currentX = startX + (column * cellWidth);
+    double currentY = startY + (row * (titleHeight + valueHeight));
 
-  final double maxPageHeight =
-      page.getClientSize().height - 50; // 50 es el margen inferior
+    // Dibujar título (clave)
+    graphics.drawRectangle(
+      bounds: Rect.fromLTWH(currentX, currentY, cellWidth, titleHeight),
+      brush: PdfBrushes.lightBlue,
+      pen: borderPen,
+    );
+    graphics.drawString(
+      displayName,
+      PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold),
+      bounds:
+          Rect.fromLTWH(currentX + 5, currentY, cellWidth - 10, titleHeight),
+      format: PdfStringFormat(
+          alignment: PdfTextAlignment.left,
+          lineAlignment: PdfVerticalAlignment.middle),
+    );
 
-  // Función para agregar contenido a la página
-  void addGroupedRow(List<String> titles, List<Map<String, dynamic>> sections) {
-    PdfGrid grid = PdfGrid();
-    grid.columns
-        .add(count: titles.length); // Definir cuántas columnas por sección
-    grid.headers.add(sections.length);
+    // Dibujar valor
+    graphics.drawRectangle(
+      bounds: Rect.fromLTWH(
+          currentX, currentY + titleHeight, cellWidth, valueHeight),
+      brush: PdfBrushes.lightGray,
+      pen: borderPen,
+    );
+    graphics.drawString(
+      entry.value ?? 'Indefinido',
+      PdfStandardFont(PdfFontFamily.helvetica, 10),
+      bounds: Rect.fromLTWH(
+          currentX + 5, currentY + titleHeight, cellWidth - 10, valueHeight),
+      format: PdfStringFormat(
+          alignment: PdfTextAlignment.left,
+          lineAlignment: PdfVerticalAlignment.middle),
+    );
 
-    PdfGridRow row;
-    PdfGridRow header;
-
-    // Dibujar los encabezados de la tabla
-    for (var i = 0; i < titles.length; i++) {
-      header = grid.headers[i];
-      header.cells[i].value = titles[i].toUpperCase();
-      header.style = PdfGridCellStyle(font: titleFont);
-
-      titulo = titles[i];
+    // Mover a la siguiente celda
+    column++;
+    if (column == 3) {
+      column = 0;
+      row++;
     }
+  }
+}
 
-    // Dibujar las celdas
-    for (var s = 0; s < sections.length; s++) {
-      for (var entry in sections[s].entries) {
-        row = grid.rows.add();
-        sections[s].forEach((key, value) {
-          row.cells[s].value = "${entry.key}: \n${entry.value ?? "---"}";
-        });
-      }
+void drawDatosBeneficiarioWithBorders(PdfPage page,
+    Map<String, dynamic> beneficiarioMap, double startX, double startY) {
+  final PdfGraphics graphics = page.graphics;
 
-      grid.style = PdfGridStyle(
-        font: contentFont,
-        cellPadding: PdfPaddings(left: 5, right: 5, top: 5, bottom: 5),
+  // Dimensiones de la tabla
+  double cellWidth = 170; // Ancho de cada celda
+  double titleHeight = 20; // Altura para los títulos
+  double valueHeight = 30; // Altura para los valores
+  double tableWidth = 3 * cellWidth; // Ancho total de la tabla
+
+  // Dibujar cabecera de la tabla
+  final PdfBrush headerBrush = PdfBrushes.lightGray;
+  final PdfPen borderPen = PdfPens.gray;
+
+  graphics.drawRectangle(
+    bounds: Rect.fromLTWH(startX, startY, tableWidth, titleHeight),
+    brush: headerBrush,
+    pen: borderPen,
+  );
+  // Título general
+  graphics.drawString(
+    "Datos del beneficiario",
+    PdfStandardFont(PdfFontFamily.helvetica, 12, style: PdfFontStyle.bold),
+    bounds: Rect.fromLTWH(startX, startY, tableWidth, titleHeight),
+    format: PdfStringFormat(
+      alignment: PdfTextAlignment.center,
+      lineAlignment: PdfVerticalAlignment.middle,
+    ),
+  );
+
+  // Ajustar posición para las filas
+  startY += titleHeight;
+
+  // Fila 1: Títulos de los primeros 3 datos
+  final List<String> firstRowTitles = ["Nombres", "Apellidos", "Celular 1"];
+  for (int i = 0; i < 3; i++) {
+    double currentX = startX + (i * cellWidth);
+    graphics.drawRectangle(
+      bounds: Rect.fromLTWH(currentX, startY, cellWidth, titleHeight),
+      brush: PdfBrushes.lightBlue,
+      pen: borderPen,
+    );
+    graphics.drawString(
+      firstRowTitles[i],
+      PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold),
+      bounds: Rect.fromLTWH(currentX + 5, startY, cellWidth - 10, titleHeight),
+      format: PdfStringFormat(
+        alignment: PdfTextAlignment.left,
+        lineAlignment: PdfVerticalAlignment.middle,
+      ),
+    );
+  }
+
+  // Fila 2: Datos de los primeros 3
+  startY += titleHeight;
+  final List<String> firstRowValues = [
+    beneficiarioMap["nombres"] ?? 'Indefinido',
+    beneficiarioMap["apellidos"] ?? 'Indefinido',
+    beneficiarioMap["celular1"] ?? 'Indefinido'
+  ];
+  for (int i = 0; i < 3; i++) {
+    double currentX = startX + (i * cellWidth);
+    graphics.drawRectangle(
+      bounds: Rect.fromLTWH(currentX, startY, cellWidth, valueHeight),
+      brush: PdfBrushes.lightGray,
+      pen: borderPen,
+    );
+    graphics.drawString(
+      firstRowValues[i],
+      PdfStandardFont(PdfFontFamily.helvetica, 10),
+      bounds: Rect.fromLTWH(currentX + 5, startY, cellWidth - 10, valueHeight),
+      format: PdfStringFormat(
+        alignment: PdfTextAlignment.left,
+        lineAlignment: PdfVerticalAlignment.middle,
+      ),
+    );
+  }
+
+  // Fila 3: Títulos de los siguientes 3 datos
+  startY += valueHeight;
+  final List<String> secondRowTitles = [
+    "Celular 2",
+    "Tipo Identificación",
+    "Número Identificación"
+  ];
+  for (int i = 0; i < 3; i++) {
+    double currentX = startX + (i * cellWidth);
+    graphics.drawRectangle(
+      bounds: Rect.fromLTWH(currentX, startY, cellWidth, titleHeight),
+      brush: PdfBrushes.lightBlue,
+      pen: borderPen,
+    );
+    graphics.drawString(
+      secondRowTitles[i],
+      PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold),
+      bounds: Rect.fromLTWH(currentX + 5, startY, cellWidth - 10, titleHeight),
+      format: PdfStringFormat(
+        alignment: PdfTextAlignment.left,
+        lineAlignment: PdfVerticalAlignment.middle,
+      ),
+    );
+  }
+
+  // Fila 4: Datos de los siguientes 3
+  startY += titleHeight;
+  final List<String> secondRowValues = [
+    beneficiarioMap["celular2"] ?? 'Indefinido',
+    beneficiarioMap["tipo_identificacion"] ?? 'Indefinido',
+    beneficiarioMap["numero_identificacion"] ?? 'Indefinido'
+  ];
+  for (int i = 0; i < 3; i++) {
+    double currentX = startX + (i * cellWidth);
+    graphics.drawRectangle(
+      bounds: Rect.fromLTWH(currentX, startY, cellWidth, valueHeight),
+      brush: PdfBrushes.lightGray,
+      pen: borderPen,
+    );
+    graphics.drawString(
+      secondRowValues[i],
+      PdfStandardFont(PdfFontFamily.helvetica, 10),
+      bounds: Rect.fromLTWH(currentX + 5, startY, cellWidth - 10, valueHeight),
+      format: PdfStringFormat(
+        alignment: PdfTextAlignment.left,
+        lineAlignment: PdfVerticalAlignment.middle,
+      ),
+    );
+  }
+
+  // Fila 5: Título "Dirección de entrega"
+  startY += valueHeight;
+  graphics.drawRectangle(
+    bounds: Rect.fromLTWH(startX, startY, tableWidth, titleHeight),
+    brush: PdfBrushes.lightBlue,
+    pen: borderPen,
+  );
+  graphics.drawString(
+    "Dirección de entrega",
+    PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold),
+    bounds: Rect.fromLTWH(startX + 5, startY, tableWidth - 10, titleHeight),
+    format: PdfStringFormat(
+      alignment: PdfTextAlignment.left,
+      lineAlignment: PdfVerticalAlignment.middle,
+    ),
+  );
+
+  // Fila 6: Dirección de entrega
+  startY += titleHeight;
+  graphics.drawRectangle(
+    bounds: Rect.fromLTWH(startX, startY, tableWidth, valueHeight),
+    brush: PdfBrushes.lightGray,
+    pen: borderPen,
+  );
+  graphics.drawString(
+    beneficiarioMap["direccion_entrega"] ?? 'Indefinido',
+    PdfStandardFont(PdfFontFamily.helvetica, 10),
+    bounds: Rect.fromLTWH(startX + 5, startY, tableWidth - 10, valueHeight),
+    format: PdfStringFormat(
+      alignment: PdfTextAlignment.left,
+      lineAlignment: PdfVerticalAlignment.middle,
+    ),
+  );
+
+  // Fila 7: Títulos de latitud y longitud
+  startY += valueHeight;
+  final List<String> lastRowTitles = ["Latitud", "Longitud"];
+  for (int i = 0; i < 2; i++) {
+    double currentX = startX + (i * (tableWidth / 2));
+    graphics.drawRectangle(
+      bounds: Rect.fromLTWH(currentX, startY, tableWidth / 2, titleHeight),
+      brush: PdfBrushes.lightBlue,
+      pen: borderPen,
+    );
+    graphics.drawString(
+      lastRowTitles[i],
+      PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold),
+      bounds: Rect.fromLTWH(
+          currentX + 5, startY, (tableWidth / 2) - 10, titleHeight),
+      format: PdfStringFormat(
+        alignment: PdfTextAlignment.left,
+        lineAlignment: PdfVerticalAlignment.middle,
+      ),
+    );
+  }
+
+  // Fila 8: Datos de latitud y longitud
+  startY += titleHeight;
+  final List<String> lastRowValues = [
+    beneficiarioMap["latitud"] ?? 'Indefinido',
+    beneficiarioMap["longitud"] ?? 'Indefinido'
+  ];
+  for (int i = 0; i < 2; i++) {
+    double currentX = startX + (i * (tableWidth / 2));
+    graphics.drawRectangle(
+      bounds: Rect.fromLTWH(currentX, startY, tableWidth / 2, valueHeight),
+      brush: PdfBrushes.lightGray,
+      pen: borderPen,
+    );
+    graphics.drawString(
+      lastRowValues[i],
+      PdfStandardFont(PdfFontFamily.helvetica, 10),
+      bounds: Rect.fromLTWH(
+          currentX + 5, startY, (tableWidth / 2) - 10, valueHeight),
+      format: PdfStringFormat(
+        alignment: PdfTextAlignment.left,
+        lineAlignment: PdfVerticalAlignment.middle,
+      ),
+    );
+  }
+}
+
+void drawDatosPlan(
+    PdfPage page, Map<String, dynamic> planMap, double startX, double startY) {
+  final PdfGraphics graphics = page.graphics;
+
+  // Dibujar la tabla con dos filas (cada una dividida en 2 columnas)
+  double cellWidth = 255; // Ancho de cada celda
+  double titleHeight = 20; // Altura de las celdas de título
+  double valueHeight = 30; // Altura de las celdas de valor
+  double tableWidth = 2 * cellWidth; // Ancho total de la tabla (2 columnas)
+
+  // Dibujar cabecera de la tabla
+  final PdfBrush headerBrush = PdfBrushes.lightGray;
+  final PdfPen borderPen = PdfPens.gray;
+
+  graphics.drawRectangle(
+    bounds: Rect.fromLTWH(startX, startY, tableWidth, titleHeight),
+    brush: headerBrush,
+    pen: borderPen,
+  );
+  // Título general de la sección
+  graphics.drawString(
+    "Datos del Plan",
+    PdfStandardFont(PdfFontFamily.helvetica, 12, style: PdfFontStyle.bold),
+    bounds: Rect.fromLTWH(startX, startY, 3 * 170, 20),
+    format: PdfStringFormat(
+      alignment: PdfTextAlignment.center,
+      lineAlignment: PdfVerticalAlignment.middle,
+    ),
+  );
+
+  // Ajustar la posición después del título
+  startY += 20;
+
+  // Primer fila: Títulos y valores de los primeros dos elementos
+  List<MapEntry<String, dynamic>> entries = planMap.entries.toList();
+  int column = 0;
+  for (int i = 0; i < 2; i++) {
+    String displayName = entries[i].key; // Obtener el título
+    String displayValue = entries[i].value ?? 'Indefinido'; // Obtener el valor
+
+    if (displayName != "id_pago" && displayName != "id_plan") {
+      // Dibujar título
+      graphics.drawRectangle(
+        bounds: Rect.fromLTWH(
+            startX + (column * cellWidth), startY, cellWidth * 2, titleHeight),
+        brush: PdfBrushes.lightBlue,
+        pen: PdfPens.gray,
+      );
+      graphics.drawString(
+        displayName,
+        PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold),
+        bounds: Rect.fromLTWH(startX + (column * cellWidth) + 5, startY,
+            cellWidth - 10, titleHeight),
+        format: PdfStringFormat(
+          alignment: PdfTextAlignment.left,
+          lineAlignment: PdfVerticalAlignment.middle,
+        ),
       );
 
-      // Dibujar la tabla en la página actual
-      final result = grid.draw(
-          page: page,
-          bounds: Rect.fromLTWH(
-              0, currentYPosition, page.getClientSize().width, 0));
+      // Dibujar valor
+      graphics.drawRectangle(
+        bounds: Rect.fromLTWH(startX + (column * cellWidth),
+            startY + titleHeight, cellWidth * 2, valueHeight),
+        brush: PdfBrushes.lightGray,
+        pen: PdfPens.gray,
+      );
+      graphics.drawString(
+        displayValue,
+        PdfStandardFont(PdfFontFamily.helvetica, 10),
+        bounds: Rect.fromLTWH(startX + (column * cellWidth) + 5,
+            startY + titleHeight, cellWidth - 10, valueHeight),
+        format: PdfStringFormat(
+          alignment: PdfTextAlignment.left,
+          lineAlignment: PdfVerticalAlignment.middle,
+        ),
+      );
 
-      // Si la tabla se dibuja correctamente, actualizamos la posición
-      if (result != null) {
-        // Sumar el valor de bounds.bottom para actualizar la posición Y
-        currentYPosition += result.bounds.bottom;
-
-        // Si la posición Y supera el límite de la página, crear una nueva página
-
-        if (currentYPosition > maxPageHeight ||
-            (titulo.contains("Actividad Económica Principal") ||
-                titulo.contains("Actividad Económica Secundaria") ||
-                titulo.contains("Situación económica"))) {
-          // Crear nueva página
-          page = document.pages.add(); // Crear nueva página
-          currentYPosition = 0; // Reiniciar la posición Y para la nueva página
-
-          //NO volvemos a dibujar la tabla aquí**, solo actualizamos la posición de Y para continuar
-          // Después de la creación de la nueva página, la tabla no se vuelve a dibujar, solo se continúa con el siguiente bloque de contenido.
-        } else {
-          // Si no se supera el límite de la página, solo ajustamos la posición Y
-          currentYPosition += 20; // Ajuste de espacio adicional entre cuadros
-        }
-      }
+      column++;
     }
   }
 
-  // Agregar los datos agrupados según tu especificación
-  addGroupedRow(["Datos Personales"], [datosPersonales['datos']]);
-  addGroupedRow(["Nacimiento"], [datosPersonales["nacimiento"]]);
-  addGroupedRow(["Identificación"], [datosPersonales["identificacion"]]);
-  addGroupedRow(["Residencia"], [datosPersonales["residencia"]]);
-  addGroupedRow(["Educación"], [datosPersonales["educacion"]]);
-  addGroupedRow(["Actividad Económica Principal"],
-      [datosPersonales["actividad_principal"]]);
-  addGroupedRow(["Actividad Económica Secundaria"],
-      [datosPersonales["actividad_secundaria"]]);
-  addGroupedRow(["Situación económica"], [datosPersonales["economia"]]);
-  addGroupedRow(["Estado civil"], [datosPersonales["estado_civil"]]);
-  // Puedes seguir agregando más secciones
-  // **DATOS DEL CONYUGE
-  addGroupedRow(["Datos personales cónyuge"], [datosConyuge["datos"]]);
-  addGroupedRow(["Nacimiento Cónyuge"], [datosConyuge["nacimiento"]]);
-  addGroupedRow(["Identificación Cónyuge"], [datosConyuge["identificacion"]]);
-  addGroupedRow(["Educación Cónyuge"], [datosConyuge["educacion"]]);
-  addGroupedRow(["Actividad Económica Principal Cónyuge"],
-      [datosConyuge['actividad_principal']]);
-  addGroupedRow(["Estado civil Cónyuge"], [datosConyuge["estado_civil"]]);
-  // **DATOS DEL GARANTE
-  addGroupedRow(["Datos Personales Garante"], [datosGarante['datos']]);
-  addGroupedRow(["Nacimiento  Garante"], [datosGarante["nacimiento"]]);
-  addGroupedRow(["Identificación  Garante"], [datosGarante["identificacion"]]);
-  addGroupedRow(["Residencia  Garante"], [datosGarante["residencia"]]);
-  addGroupedRow(["Educación  Garante"], [datosGarante["educacion"]]);
-  addGroupedRow(["Actividad Económica Principal Garante"],
-      [datosGarante["actividad_principal"]]);
-  addGroupedRow(["Actividad Económica Secundaria Garante"],
-      [datosGarante["actividad_secundaria"]]);
-  addGroupedRow(["Situación económica Garante"], [datosGarante["economia"]]);
-  addGroupedRow(["Estado civil  Garante"], [datosGarante["estado_civil"]]);
-  // **REFERENCIAS PERSONALES
-  addGroupedRow(
-      ["Referencia Personal 1"], [referencias["referencias"]['referencia_1']]);
-  addGroupedRow(
-      ["Referencia Personal 2"], [referencias["referencias"]['referencia_2']]);
-  // **REFERENCIAS ECONOMICAS
-  addGroupedRow(["Referencia Bancaria"], [refEconomicas['datos_bancarios']]);
-  addGroupedRow(["Referencia Proveedor"], [refEconomicas['proveedor']]);
-  // **SOLICITUD DE PRODUCTO
+  // Ajustar la posición para la siguiente fila
+  startY += titleHeight + valueHeight;
 
-  addGroupedRow(["Solicitud de Producto"], [solicitudProducto['solicitud']]);
+  // Segunda fila: Títulos y valores de los siguientes dos elementos
+  column = 0;
+  for (int i = 2; i < 4; i++) {
+    String displayName = entries[i].key; // Obtener el título
 
-  // Guardar PDF
-  List<int> bytes = document.saveSync();
-  document.dispose();
+    if (displayName != "id_plan" && displayName != "id_pago") {
+      String displayValue =
+          entries[i].value ?? 'Indefinido'; // Obtener el valor
 
-  // Codificar a base64
-  return base64Encode(bytes);
-} */
+      // Dibujar título
+      graphics.drawRectangle(
+        bounds: Rect.fromLTWH(
+            startX + (column * cellWidth), startY, cellWidth * 2, titleHeight),
+        brush: PdfBrushes.lightBlue,
+        pen: PdfPens.gray,
+      );
+      graphics.drawString(
+        displayName,
+        PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold),
+        bounds: Rect.fromLTWH(startX + (column * cellWidth) + 5, startY,
+            cellWidth - 10, titleHeight),
+        format: PdfStringFormat(
+          alignment: PdfTextAlignment.left,
+          lineAlignment: PdfVerticalAlignment.middle,
+        ),
+      );
 
+      // Dibujar valor
+      graphics.drawRectangle(
+        bounds: Rect.fromLTWH(startX + (column * cellWidth),
+            startY + titleHeight, cellWidth * 2, valueHeight),
+        brush: PdfBrushes.lightGray,
+        pen: PdfPens.gray,
+      );
+      graphics.drawString(
+        displayValue,
+        PdfStandardFont(PdfFontFamily.helvetica, 10),
+        bounds: Rect.fromLTWH(startX + (column * cellWidth) + 5,
+            startY + titleHeight, cellWidth - 10, valueHeight),
+        format: PdfStringFormat(
+          alignment: PdfTextAlignment.left,
+          lineAlignment: PdfVerticalAlignment.middle,
+        ),
+      );
 
+      column++;
+    }
+  }
+
+  // Ajustar la posición para la siguiente fila
+  startY += titleHeight + valueHeight;
+
+  // Tercer fila: Un solo campo con título "Información adicional"
+  graphics.drawRectangle(
+    bounds: Rect.fromLTWH(startX, startY, tableWidth, titleHeight),
+    brush: PdfBrushes.lightBlue,
+    pen: PdfPens.gray,
+  );
+  graphics.drawString(
+    "Información adicional",
+    PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold),
+    bounds: Rect.fromLTWH(startX + 5, startY, tableWidth - 10, titleHeight),
+    format: PdfStringFormat(
+      alignment: PdfTextAlignment.left,
+      lineAlignment: PdfVerticalAlignment.middle,
+    ),
+  );
+
+  // Ajustar la posición para la siguiente fila
+  startY += titleHeight;
+
+  // Cuarta fila: El valor de "Información adicional"
+  graphics.drawRectangle(
+    bounds: Rect.fromLTWH(startX, startY, tableWidth, valueHeight),
+    brush: PdfBrushes.lightGray,
+    pen: PdfPens.gray,
+  );
+  graphics.drawString(
+    planMap["informacion_adicional"] ?? 'Indefinido',
+    PdfStandardFont(PdfFontFamily.helvetica, 10),
+    bounds: Rect.fromLTWH(startX + 5, startY, tableWidth - 10, valueHeight),
+    format: PdfStringFormat(
+      alignment: PdfTextAlignment.left,
+      lineAlignment: PdfVerticalAlignment.middle,
+    ),
+  );
+}

@@ -425,8 +425,8 @@ class Operations {
   Future<int> eliminarProspecto(int id) async {
     final Database db = await initDatabase();
 
-    var res = await db
-        .delete(_tblProspecto, where: "id_prospecto = ?", whereArgs: [id]);
+    var res = await db.update(_tblProspecto, {"estado": 1},
+        where: "id_prospecto = ?", whereArgs: [id]);
 
     return res;
   }
@@ -645,7 +645,7 @@ class Operations {
     return eventos;
   }
 
-  Future<List<CalendarModel>>   obtenerAgendas() async {
+  Future<List<CalendarModel>> obtenerAgendas() async {
     final db = await initDatabase();
 
     List<CalendarModel> eventos = [];
@@ -1032,8 +1032,8 @@ class Operations {
         WHEN ac.estado = 1 OR ac.estado = 2 THEN 1
         ELSE 2
       END AS estado_general
-        FROM $_tblPersona p JOIN $_tblAutorizacion ac ON p.id_persona = ac.id_persona
-       
+        FROM $_tblPersona p JOIN $_tblSolicitud ac ON p.id_persona = ac.id_persona
+        WHERE p.estado = 'A'
         GROUP BY p.id_persona
         HAVING estado_general = 1""") as List<Map<String, dynamic>>;
 
@@ -1247,10 +1247,11 @@ class Operations {
   }
 
   Future<List<SolicitudCreditoModel>> obtenerSolciitudPersonaXestado(
-      int idPersona, int idAutorizacion) async {
+      int idPersona) async {
     final db = await initDatabase();
 
-    final list = await db.rawQuery('SELECT * FROM $_tblSolicitud');
+    final list = await db.rawQuery(
+        'SELECT * FROM $_tblSolicitud WHERE id_persona = $idPersona AND estado <> 3');
 
     if (list.isNotEmpty) {
       var solicitudes = <SolicitudCreditoModel>[];

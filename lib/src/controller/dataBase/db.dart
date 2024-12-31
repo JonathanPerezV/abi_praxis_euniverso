@@ -173,12 +173,10 @@ class DBProvider {
   static const String rechazo = "motivo";
   static const String tipoProducto = "id_tipo_producto";
   //monto
+  static const String codigoContrato = "codigo_contrato";
   static const String datosPersonales = "datos_personales";
-  static const String datosConyuge = "datos_conyuge";
-  static const String datosGarante = "datos_garante";
-  static const String refPersonales = "referencias_personales";
-  static const String refEconomicas = "referencias_economicas";
-  static const String solicitudProd = "solicitud_producto";
+  static const String datosBeneficiario = "datos_beneficiario";
+  static const String datosSuscripcion = "datos_suscripcion";
   static const String documentos = "documentos";
   static const String autorizacion = "autorizacion";
   //fecha creacion
@@ -229,9 +227,9 @@ class DBProvider {
         $sector TEXT,
         $latitudTrabajo TEXT,
         $longitudTrabajo TEXT,
-        $pais TEXT,
-        $provincia TEXT,
-        $ciudad TEXT,
+        $pais INTEGER,
+        $provincia INTEGER,
+        $ciudad INTEGER,
         $fotoRefCasa BLOB,
         $fotoRefTrabajo BLOB,
         $fechaCreacion TEXT,
@@ -401,18 +399,14 @@ class DBProvider {
       )""");
       await db.execute("""CREATE TABLE IF NOT EXISTS tbl_solicitud(
       $idSolicitud INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      $idAutorizacion INTEGER,
       $idPersona INTEGER,
       $idPromotor INTEGER,
       $rechazo TEXT,
       $tipoProducto INTEGER,
-      $monto TEXT,
+      $codigoContrato TEXT,
       $datosPersonales BLOB,
-      $datosConyuge BLOB,
-      $datosGarante BLOB,
-      $refPersonales BLOB,
-      $refEconomicas BLOB,
-      $solicitudProd BLOB,
+      $datosBeneficiario BLOB,
+      $datosSuscripcion BLOB,
       $autorizacion BLOB,
       $documentos BLOB,
       $fechaCreacion TEXT,

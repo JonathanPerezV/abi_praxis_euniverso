@@ -1,5 +1,6 @@
-import 'package:abi_praxis_app/src/views/inside/home/consultar/opciones/solicitudes_curso/contenedor.dart';
-import 'package:abi_praxis_app/src/views/inside/home/vender/credito/autorizacion.dart';
+import 'package:abi_praxis_app/src/views/inside/home/vendedor/consultar/opciones/solicitudes_curso/contenedor.dart';
+import 'package:abi_praxis_app/src/views/inside/home/vendedor/vender/credito/solicitud/solicitud.dart';
+import 'package:abi_praxis_app/utils/textFields/input_text_fields.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -8,11 +9,12 @@ import 'package:abi_praxis_app/main.dart';
 import 'package:abi_praxis_app/src/views/register/login.dart';
 import 'package:abi_praxis_app/utils/buttons.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:pinput/pinput.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../src/controller/aws/sync.dart';
 import '../../src/models/usuario/persona_model.dart';
-import '../../src/views/inside/home/consultar/opciones/prospectos/agregar_prospecto.dart';
+import '../../src/views/inside/home/vendedor/consultar/opciones/prospectos/agregar_prospecto.dart';
 
 class IosAlert {
   void acceptTermCondsIos(context) {
@@ -299,13 +301,14 @@ class IosAlert {
               Column(
                 children: [
                   nextButton(
-                      onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (builder) => AutorizacionConsulta(
-                                    edit: false,
-                                    idAutorizacion: idProducto,
-                                  ))),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (builder) => SolicitudCredito(
+                                    idTipoProducto: idProducto)));
+                      },
                       text: "Vinculación",
                       fontSize: 12,
                       width: 120,
@@ -406,5 +409,55 @@ class IosAlert {
             ],
           );
         });
+  }
+
+  Future<String> alertCodigoContrato(BuildContext context,
+      {String? num}) async {
+    final txtCodigo = TextEditingController();
+    final fkey = GlobalKey<FormState>();
+
+    if (num != null) {
+      txtCodigo.text = num;
+    }
+
+    await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (builder) {
+          return CupertinoAlertDialog(
+            title: const Text("Código de contrato"),
+            content: Column(children: [
+              const Text(
+                  "Ingrese el código del contrato físico que se encuentra en la parte superior izquierda."),
+              const SizedBox(height: 10),
+              Form(
+                  key: fkey,
+                  child: InputTextFields(
+                      tipoTeclado: TextInputType.number,
+                      controlador: txtCodigo,
+                      placeHolder: "202020",
+                      nombreCampo: "CÓDIGO DE CONTRATO",
+                      accionCampo: TextInputAction.done)
+                  /*Pinput(
+                    length: 6,
+                    controller: txtCodigo,
+                    validator: (val) =>
+                        val!.isEmpty ? "Campo obligatorio *" : null,
+                    animationCurve: Curves.bounceInOut,
+                  )*/
+                  )
+            ]),
+            actions: [
+              Center(
+                child: nextButton(
+                    onPressed: () => fkey.currentState!.validate()
+                        ? Navigator.pop(context, txtCodigo.text)
+                        : null,
+                    text: "Continuar"),
+              )
+            ],
+          );
+        });
+    return txtCodigo.text;
   }
 }

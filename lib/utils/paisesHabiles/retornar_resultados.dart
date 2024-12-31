@@ -1,78 +1,78 @@
 import 'package:abi_praxis_app/utils/paisesHabiles/paises.dart';
 
-List<String> obtenerCiudadesEcuadorDe(String? nombre) {
-  List<String> lista = [];
-  switch (nombre) {
-    case 'AZUAY':
+List<Map<String, dynamic>> obtenerCiudadesEcuadorDe(int? idProvincia) {
+  List<Map<String, dynamic>> lista = [];
+  switch (idProvincia) {
+    case 3:
       lista = listaCiudadesAzuay;
       break;
-    case 'BOLIVAR':
+    case 5:
       lista = listaCiudadesBolivar;
       break;
-    case 'CAÑAR':
+    case 6:
       lista = listaCiudadesCanar;
       break;
-    case 'CARCHI':
+    case 7:
       lista = listaCiudadesCarchi;
       break;
-    case 'CHIMBORAZO':
+    case 9:
       lista = listaCiudadesChimborazo;
       break;
-    case 'COTOPAXI':
+    case 8:
       lista = listaCiudadesCotopaxi;
       break;
-    case 'EL ORO':
+    case 10:
       lista = listaCiudadesElOro;
       break;
-    case 'ESMERALDAS':
+    case 11:
       lista = listaCiudadesEsmeraldas;
       break;
-    case 'GALÁPAGOS':
+    case 20:
       lista = listaCiudadesGalapagos;
       break;
-    case 'GUAYAS':
+    case 1:
       lista = listaCiudadesGuayas;
       break;
-    case 'IMBABURA':
+    case 12:
       lista = listaCiudadesImbabura;
       break;
-    case 'LOJA':
+    case 13:
       lista = listaCiudadesLoja;
       break;
-    case 'LOS RÍOS':
+    case 14:
       lista = listaCiudadesLosRios;
       break;
-    case 'MANABÍ':
+    case 4:
       lista = listaCiudadesManabi;
       break;
-    case 'MORONA SANTIAGO':
+    case 15:
       lista = listaCiudadesMoronaSant;
       break;
-    case 'NAPO':
+    case 16:
       lista = listaCiudadesNapo;
       break;
-    case 'SUCUMBÍOS':
+    case 21:
       lista = listaCiudadesSucumbios;
       break;
-    case 'PASTAZA':
+    case 17:
       lista = listaCiudadesPastaza;
       break;
-    case 'PICHINCHA':
+    case 2:
       lista = listaCiudadesPichincha;
       break;
-    case 'SANTA ELENA':
+    case 24:
       lista = listaCiudadesSantaElena;
       break;
-    case 'SANTO DOMINGO':
+    case 23:
       lista = listaCiudadesSantoDomin;
       break;
-    case 'FRANCISCO DE ORELLANA':
+    case 22:
       lista = listaCiudadesFrancOrellana;
       break;
-    case 'TUNGURAHUA':
+    case 18:
       lista = listaCiudadesTungurahua;
       break;
-    case 'ZAMORA CHINCHIPE':
+    case 19:
       lista = listaZamoraChinchipe;
       break;
     default:

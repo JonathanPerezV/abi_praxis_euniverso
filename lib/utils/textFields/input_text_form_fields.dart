@@ -24,6 +24,7 @@ class InputTextFormFields extends StatelessWidget {
   final void Function()? onTap;
   final Widget? widgetNombreCampo;
   final FocusNode? focus;
+  final EdgeInsets? padding;
   final void Function(String)? onSubmitted;
 
   const InputTextFormFields(
@@ -51,7 +52,8 @@ class InputTextFormFields extends StatelessWidget {
       this.tipoTeclado,
       this.habilitado,
       this.onTap,
-      this.focus})
+      this.focus,
+      this.padding})
       : super(key: key);
   @override
   Widget build(BuildContext context) {

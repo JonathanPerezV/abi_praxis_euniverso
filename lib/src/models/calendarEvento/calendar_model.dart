@@ -16,6 +16,7 @@ class CalendarModel {
   int? medioContacto;
   int? gestion;
   String? nombres;
+  String? apellidos;
   String? empresa;
   String lugarReunion;
   int? resultadoReunion;
@@ -58,6 +59,7 @@ class CalendarModel {
       this.fotoReferencia,
       required this.idPromotor,
       this.nombres,
+      this.apellidos,
       this.empresa,
       this.plan,
       this.asistio,
@@ -128,6 +130,7 @@ class CalendarModel {
       categoriaProducto: json["categoria_producto"],
       empresa: json["empresa_negocio"],
       nombres: json["nombres"],
+      apellidos: json["apellidos"],
       gestion: json["gestion"],
       idPersona: json["id_persona"],
       lugarReunion: json["lugar_reunion"],

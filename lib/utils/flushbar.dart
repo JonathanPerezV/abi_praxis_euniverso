@@ -16,8 +16,9 @@ import 'package:flutter/material.dart';
 }*/
 
 Future<void> scaffoldMessenger(BuildContext context, String title,
-    {Icon? icon, int? seconds, Widget? trailing}) async {
+    {Icon? icon, int? seconds, Widget? trailing, Key? key}) async {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      key: key,
       duration: Duration(seconds: seconds ?? 3),
       content: Row(
         children: [
